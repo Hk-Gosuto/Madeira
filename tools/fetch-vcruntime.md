@@ -16,6 +16,19 @@ msvcp140_atomic_wait.dll
 
 ## How to get them
 
+This fork automates the extraction for local builds and CI:
+
+```sh
+brew install sevenzip
+python3 tools/fetch-vcruntime.py
+```
+
+The script pins Microsoft's 14.44.35211.0 installer by URL and SHA-256,
+extracts both attached WiX CAB containers and their nested runtime CABs,
+and selects only the twelve x64 DLLs. It verifies their certificate payloads
+and writes `manifest.json` for the IPA packaging checks. See
+[`docs/FORK_CI.md`](../docs/FORK_CI.md) for the automated build and release.
+
 Download the official x64 redistributable from Microsoft
 (`VC_redist.x64.exe`) and extract it. On macOS, 7-Zip can do this:
 

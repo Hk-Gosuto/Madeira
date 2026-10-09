@@ -73,6 +73,11 @@ Because JIT needs a debugger, Madeira cannot be offered on the App Store.
 Some 64-bit games need Microsoft's Visual C++ runtime, which is not included
 (see [Licensing](#licensing)).
 
+**This fork:** its [automated releases](https://github.com/Hk-Gosuto/Madeira/releases)
+include the twelve unmodified Visual C++ x64 runtime DLLs. Two workflows
+merge upstream changes and build/publish an unsigned Debug IPA; see
+[`docs/FORK_CI.md`](docs/FORK_CI.md) for details and installation instructions.
+
 ## Building from source
 
 ```sh

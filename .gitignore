@@ -132,6 +132,10 @@ build/wine-mono/wine-mono-*
 # redistributable terms and only unmodified. Not ours to ship -- obtain them
 # yourself, see tools/fetch-vcruntime.md.
 app/Madeira/x86_64-vcruntime/*.dll
+app/Madeira/x86_64-vcruntime/manifest.json
+tools/__pycache__/
+build/ipa/
+build/freetype-ios/build/
 research/remote-metal/host/rmetald
 research/remote-metal/guest/rmtest
 

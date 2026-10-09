@@ -12,16 +12,6 @@ SHIMS_DIR="$REPO_ROOT/build/ntdll-unix/shims"
 OBJ_DIR="$BUILD_DIR/obj"
 mkdir -p "$OBJ_DIR"
 
-# Copy the base library if we don't have one yet
-if [ ! -f "$OBJ_DIR/libwineserver.a" ]; then
-    if [ -f "$APP_LIB" ]; then
-        cp "$APP_LIB" "$OBJ_DIR/libwineserver.a"
-    else
-        echo "ERROR: No base libwineserver.a found"
-        exit 1
-    fi
-fi
-
 CC_FLAGS=(
     -arch arm64 -isysroot "$SDK" -miphoneos-version-min=17.0 -O2
     -I"$WINE_SRC/include" -I"$WINE_SRC/include/wine"
@@ -112,6 +102,27 @@ PATCHED_FILES=(
     "hidpad_ios:hidpad_ios.c:hidpad_ios.o"
     "hidparse_ios:$REPO_ROOT/build/hidpad/hidparse_ios.c:hidparse_ios.o"
 )
+
+# A clean clone has no base archive. Compile every remaining server source
+# with the same iOS flags, then replace the ported members below. Full builds
+# refresh these members too, so an upstream change cannot leave stale code.
+if [ "${1:-all}" = all ]; then
+    BASE_OBJECTS=()
+    for src in "$WINE_SRC"/server/*.c; do
+        name=$(basename "$src" .c)
+        replaced=0
+        for entry in "${PATCHED_FILES[@]}"; do
+            if [ "${entry##*:}" = "$name.o" ]; then replaced=1; break; fi
+        done
+        [ "$replaced" = 0 ] || continue
+        compile_one "$src" "$name"
+        BASE_OBJECTS+=("$OBJ_DIR/$name.o")
+    done
+    rm -f "$OBJ_DIR/libwineserver.a"
+    ar rcs "$OBJ_DIR/libwineserver.a" "${BASE_OBJECTS[@]}"
+elif [ ! -f "$OBJ_DIR/libwineserver.a" ]; then
+    cp "$APP_LIB" "$OBJ_DIR/libwineserver.a"
+fi
 
 echo "=== Building kill wrapper (without kill macro) ==="
 echo -n "  wineserver_ios_kill... "

@@ -1,0 +1,101 @@
+name: Build and release IPA
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: 'Commit to build (empty uses the selected branch)'
+        required: false
+        type: string
+  push:
+    branches: [main]
+    paths-ignore: ['docs/**', '**/*.md']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-ipa-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 360
+    env:
+      CMAKE_BUILD_PARALLEL_LEVEL: '3'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit || github.sha }}
+          submodules: recursive
+      - name: Select Xcode 26
+        run: |
+          set -euo pipefail
+          xcode=$(find /Applications -maxdepth 1 -type d -name 'Xcode_26*.app' | sort -V | tail -1)
+          test -n "$xcode"
+          sudo xcode-select -s "$xcode/Contents/Developer"
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+      - name: Install build tools
+        run: |
+          brew install ninja cmake meson bison flex pkgconf llvm ccache sevenzip autoconf automake libtool
+          rustup target add aarch64-apple-ios
+      - name: Cache pinned toolchains and LLVM build
+        uses: actions/cache@v4
+        with:
+          path: |
+            toolchains/llvm-mingw-20260421-ucrt-macos-universal
+            toolchains/llvm-project
+            toolchains/llvm-host-build
+            toolchains/llvm-ios-build
+          key: llvm-ios-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools/ci-build.sh', 'tools/ci-prepare.sh') }}
+      - name: Fetch and verify build inputs and Visual C++ runtime
+        run: bash tools/ci-prepare.sh
+      - name: Build Debug IPA and validate bundled binaries
+        run: bash tools/ci-build.sh
+      - name: Upload IPA and provenance
+        uses: actions/upload-artifact@v4
+        with:
+          name: Madeira-IPA-${{ github.run_number }}-${{ github.run_attempt }}
+          path: |
+            build/ipa/*.ipa
+            build/ipa/SHA256SUMS
+            build/ipa/*-manifest.json
+            build/ipa/build-info.txt
+          if-no-files-found: error
+          retention-days: 30
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="build-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
+          sha=$(git rev-parse HEAD)
+          cat > build/ipa/release-notes.md <<EOF
+          Debug iOS build of commit $sha, including Microsoft's unmodified Visual C++ x64 runtime 14.44.35211.0, Madeira Dock, D3D12 and WoW64.
+
+          This IPA is unsigned. Sideload and sign with your own Apple ID, then enable JIT as described in docs/JIT.md. Requires iOS 26 or later.
+
+          The workflow verifies the IPA structure and all 12 runtime DLL hashes and certificate payloads. Device gameplay requires a separate iPhone/JIT test.
+
+          Source and build instructions: https://github.com/$GITHUB_REPOSITORY/tree/$sha
+          Build logs: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+          EOF
+          gh release create "$tag" build/ipa/*.ipa build/ipa/SHA256SUMS \
+            build/ipa/vcruntime-manifest.json build/ipa/build-info.txt \
+            --repo "$GITHUB_REPOSITORY" --target "$sha" \
+            --title "Madeira with Visual C++ — $tag" --notes-file build/ipa/release-notes.md
+          echo "IPA release: https://github.com/$GITHUB_REPOSITORY/releases/tag/$tag" >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-diagnostics-${{ github.run_number }}-${{ github.run_attempt }}
+          path: |
+            build/**/*.err
+            build/**/err-*.txt
+            build/**/*.log
+            wine/build-*/config.log
+            FEX/build-*/CMakeFiles/CMakeConfigureLog.yaml
+          if-no-files-found: ignore
