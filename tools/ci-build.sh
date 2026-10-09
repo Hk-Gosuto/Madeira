@@ -29,13 +29,14 @@ bash build/ntdll-unix/build.sh
 bash build/wineserver/build.sh
 bash build/win32u-unix/build.sh
 
+bash tools/ci-dxmt-pe.sh
 bash build/dxmt-ios/build.sh
 # The upstream incremental script does not create the combined archive on a
 # clean checkout. Merge its objects with LLVM's static libraries for Xcode.
 xcrun --sdk iphoneos libtool -static -o app/Madeira/libdxmt_combined.a \
     build/dxmt-ios/libdxmt_unix.a toolchains/llvm-ios-build/lib/libLLVM*.a
 bash build/rppairing-ios/build.sh
-bash build/madeira-d3d12/build-pe.sh
+OUT="$R/app/Madeira/arm64ec-windows" bash build/madeira-d3d12/build-pe.sh
 bash build/madeira-dock/build.sh --check
 bash build/wine-i386/build.sh
 mkdir -p wine/build-aarch64

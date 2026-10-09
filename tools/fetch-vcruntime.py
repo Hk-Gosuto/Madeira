@@ -90,6 +90,11 @@ def main():
         if missing:
             raise SystemExit(f"Missing signed x64 DLLs: {missing}")
         output.mkdir(parents=True, exist_ok=True)
+        # Preserve Microsoft's installer license next to its runtime files.
+        license_files = list(tmp.glob("container-*/u4"))
+        if len(license_files) != 1 or not license_files[0].read_bytes().startswith(b"{\\rtf"):
+            raise SystemExit("Missing Microsoft license from pinned installer")
+        shutil.copyfile(license_files[0], output / "LICENSE.rtf")
         for name, blob in candidates.items():
             (output / name).write_bytes(blob)
         manifest = {"version": "14.44.35211.0", "url": URL, "installer_sha256": SHA256,

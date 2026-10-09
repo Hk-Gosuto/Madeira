@@ -25,6 +25,7 @@ def verify(read):
     read("i386-windows/kernel32.dll")
     read("aarch64-windows/xtajit.dll")
     manifest = json.loads(read("x86_64-vcruntime/manifest.json"))
+    read("x86_64-vcruntime/LICENSE.rtf")
     if len(manifest["dlls"]) != 12:
         raise ValueError("Expected all twelve Visual C++ runtime DLLs")
     for name, digest in manifest["dlls"].items():
