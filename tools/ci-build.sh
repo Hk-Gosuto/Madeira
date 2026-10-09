@@ -35,9 +35,11 @@ bash build/dxmt-ios/build.sh
 # clean checkout. Merge its objects with LLVM's static libraries for Xcode.
 xcrun --sdk iphoneos libtool -static -o app/Madeira/libdxmt_combined.a \
     build/dxmt-ios/libdxmt_unix.a toolchains/llvm-ios-build/lib/libLLVM*.a
+cargo test --manifest-path build/rppairing-ios/Cargo.toml --locked
 bash build/rppairing-ios/build.sh
 OUT="$R/app/Madeira/arm64ec-windows" bash build/madeira-d3d12/build-pe.sh
-bash build/madeira-dock/build.sh --check
+HOST_CC="$(xcrun --sdk macosx --find clang)" SDKROOT="$(xcrun --sdk macosx --show-sdk-path)" \
+    bash build/madeira-dock/build.sh --check
 bash build/wine-i386/build.sh
 mkdir -p wine/build-aarch64
 if [ ! -f wine/build-aarch64/config.status ]; then

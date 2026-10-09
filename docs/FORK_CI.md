@@ -44,6 +44,14 @@ DLLs. Packaged DLLs must match their extraction hashes byte-for-byte and still
 contain their certificate payloads. This checks packaging, not certificate
 trust or device gameplay. Releases include `SHA256SUMS`, `build-info.txt`
 (source/submodule revisions and Xcode version) and `vcruntime-manifest.json`.
+The build also runs Madeira Dock's host tests and the pairing crate's host
+tests, and fails if the i386 DLL farm has missing imports.
+
+The full build and IPA checks passed locally with Xcode 27.0 on 2026-10-09.
+Pairing's five host tests passed; the i386 farm contained 725 files with zero
+missing imports. The CI scripts fill the clean-checkout gaps in the upstream
+record: initial FEX configuration, Wine server's base archive, DXMT's AIR
+headers and combined LLVM archive, and DXMT PE import libraries for D3D12.
 
 ## Installing and testing
 
