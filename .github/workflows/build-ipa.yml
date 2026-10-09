@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 360
     env:
       CMAKE_BUILD_PARALLEL_LEVEL: '3'
@@ -29,12 +29,10 @@ jobs:
         with:
           ref: ${{ inputs.commit || github.sha }}
           submodules: recursive
-      - name: Select Xcode 26
+      - name: Select Xcode 27.0
         run: |
           set -euo pipefail
-          xcode=$(find /Applications -maxdepth 1 -type d -name 'Xcode_26*.app' | sort -V | tail -1)
-          test -n "$xcode"
-          sudo xcode-select -s "$xcode/Contents/Developer"
+          sudo xcode-select -s /Applications/Xcode_27.app/Contents/Developer
           xcodebuild -version
           xcrun --sdk iphoneos --show-sdk-version
       - name: Install build tools
@@ -50,7 +48,7 @@ jobs:
             toolchains/llvm-project
             toolchains/llvm-host-build
             toolchains/llvm-ios-build
-          key: llvm-ios-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools/ci-llvm.sh', 'tools/ci-prepare.sh') }}
+          key: llvm-ios-xcode27-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools/ci-llvm.sh', 'tools/ci-prepare.sh') }}
       - name: Fetch and verify build inputs and Visual C++ runtime
         run: bash tools/ci-prepare.sh
       - name: Build LLVM for iOS

@@ -12,7 +12,8 @@ Visual C++ x64 runtime DLLs described in `tools/fetch-vcruntime.md`.
   the fork. Resolve the conflict manually and rerun.
 - **Build and release IPA** (`build-ipa.yml`): runs on code pushes to `main`
   or manually. The optional `commit` input selects the exact source revision.
-  Builds on an ARM64 macOS runner with Xcode 26, uses **Debug** as required by
+  Builds on an ARM64 macOS runner with Xcode 27.0 (matching the bundled
+  StikJIT framework's Swift 6.4 interfaces), uses **Debug** as required by
   the upstream build record, validates the payload, uploads an Actions artifact
   and publishes a GitHub release with a unique `build-<run>-<attempt>` tag.
 
