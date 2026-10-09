@@ -30,6 +30,10 @@ repository's recorded commits, never the latest tip of their branches.
 `tools/ci-build.sh` builds native libraries, the Windows modules, Madeira Dock,
 WoW64 and the app. Only the expensive pinned LLVM/toolchain build is cached;
 Wine, FEX, DXMT and the application rebuild from the selected sources.
+The workflow installs and checks the Metal Toolchain explicitly, since the
+Xcode 27 preview image can lack the component. FEX's compiler object cache is
+also saved (including on build failure); ccache checks compiler options and
+source/header contents before reusing objects.
 
 `tools/fetch-vcruntime.py` downloads Microsoft's Visual C++ 2022 x64 installer
 14.44.35211.0 from its fixed Microsoft URL and verifies its SHA-256. It extracts

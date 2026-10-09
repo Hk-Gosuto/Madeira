@@ -35,10 +35,20 @@ jobs:
           sudo xcode-select -s /Applications/Xcode_27.app/Contents/Developer
           xcodebuild -version
           xcrun --sdk iphoneos --show-sdk-version
+      - name: Install and verify Metal Toolchain
+        run: |
+          xcodebuild -downloadComponent MetalToolchain
+          xcrun --sdk macosx metal --version
       - name: Install build tools
         run: |
           brew install ninja cmake meson bison flex pkgconf llvm ccache sevenzip autoconf automake libtool
           rustup target add aarch64-apple-ios
+      - name: Restore compiler object cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/Library/Caches/ccache
+          key: ccache-xcode27-${{ runner.arch }}-${{ inputs.commit || github.sha }}
+          restore-keys: ccache-xcode27-${{ runner.arch }}-
       - name: Cache pinned toolchains and LLVM build
         id: llvm-cache
         uses: actions/cache/restore@v4
@@ -110,3 +120,9 @@ jobs:
             wine/build-*/config.log
             FEX/build-*/CMakeFiles/CMakeConfigureLog.yaml
           if-no-files-found: ignore
+      - name: Save compiler object cache
+        if: success() || failure()
+        uses: actions/cache/save@v4
+        with:
+          path: ~/Library/Caches/ccache
+          key: ccache-xcode27-${{ runner.arch }}-${{ inputs.commit || github.sha }}
