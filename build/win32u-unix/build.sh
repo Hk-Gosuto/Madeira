@@ -146,14 +146,15 @@ fi
 
 echo ""
 echo "=== Building libwin32u_unix.a ==="
-ar rcs "$OBJ_DIR/libwin32u_unix.a" "$OBJ_DIR"/*.o
-
 # Merge the static freetype so the app link needs no project changes.
+# Create a fresh archive each time: merging an existing archive in place
+# accumulated duplicate FreeType members on repeated builds.
 if [ -f "$FREETYPE_DIR/build/libfreetype.a" ]; then
-    libtool -static -o "$OBJ_DIR/libwin32u_unix.a" \
-        "$OBJ_DIR/libwin32u_unix.a" "$FREETYPE_DIR/build/libfreetype.a" 2>/dev/null
+    xcrun --sdk iphoneos libtool -static -o "$OBJ_DIR/libwin32u_unix.a" \
+        "$OBJ_DIR"/*.o "$FREETYPE_DIR/build/libfreetype.a"
     echo "merged libfreetype.a"
 else
+    xcrun --sdk iphoneos libtool -static -o "$OBJ_DIR/libwin32u_unix.a" "$OBJ_DIR"/*.o
     echo "WARNING: no libfreetype.a — fonts will be disabled"
 fi
 

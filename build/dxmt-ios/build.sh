@@ -16,6 +16,28 @@ OBJ_DIR="$BUILD_DIR/obj"
 OUT_LIB="$BUILD_DIR/libdxmt_unix.a"
 
 mkdir -p "$OBJ_DIR"
+mkdir -p "$BUILD_DIR/shader-headers"
+# Match src/airconv/meson.build: these AIR helpers are linked into converted
+# shaders. They were previously assumed to exist in a developer's build tree.
+for name in air_msad air_samplepos air_tessellation; do
+    src="$DXMT_SRC/airconv/shaders/$name.metal"
+    if [ "$name" = air_tessellation ]; then
+        # Xcode 27 changed the private __metal_atomic_* builtin signature.
+        # The public MSL operation preserves the same threadgroup relaxed add.
+        src="$BUILD_DIR/shader-headers/$name.metal"
+        python3 - "$DXMT_SRC/airconv/shaders/$name.metal" "$src" <<'PY'
+from pathlib import Path
+import sys
+source = Path(sys.argv[1]).read_text()
+old = "__metal_atomic_fetch_add_explicit(out_count, 1, int(memory_order_relaxed), __METAL_MEMORY_SCOPE_THREADGROUP__)"
+new = "atomic_fetch_add_explicit((threadgroup atomic_int *)out_count, 1, memory_order_relaxed)"
+Path(sys.argv[2]).write_text(source.replace(old, new))
+PY
+    fi
+    xcrun --sdk macosx metal -c -std=metal3.1 --target=air64-apple-macos14.0 \
+        "$src" -o "$BUILD_DIR/shader-headers/$name.air"
+    xxd -i -n "$name" "$BUILD_DIR/shader-headers/$name.air" > "$BUILD_DIR/shader-headers/$name.h"
+done
 
 COMMON_FLAGS="-arch arm64 -isysroot $SDK -miphoneos-version-min=18.0 -fblocks -O2"
 INCLUDES="-I$DXMT_ROOT/include -I$DXMT_ROOT/libs -I$DXMT_SRC/winemetal -I$DXMT_SRC/airconv"
