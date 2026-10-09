@@ -1,0 +1,4 @@
+# GitHub's Xcode 27 public-preview image is listed in actions/runner-images.
+self-hosted-runner:
+  labels:
+    - xcode-27
