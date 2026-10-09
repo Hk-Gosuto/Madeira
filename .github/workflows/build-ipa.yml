@@ -42,16 +42,29 @@ jobs:
           brew install ninja cmake meson bison flex pkgconf llvm ccache sevenzip autoconf automake libtool
           rustup target add aarch64-apple-ios
       - name: Cache pinned toolchains and LLVM build
-        uses: actions/cache@v4
+        id: llvm-cache
+        uses: actions/cache/restore@v4
         with:
           path: |
             toolchains/llvm-mingw-20260421-ucrt-macos-universal
             toolchains/llvm-project
             toolchains/llvm-host-build
             toolchains/llvm-ios-build
-          key: llvm-ios-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools/ci-build.sh', 'tools/ci-prepare.sh') }}
+          key: llvm-ios-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools/ci-llvm.sh', 'tools/ci-prepare.sh') }}
       - name: Fetch and verify build inputs and Visual C++ runtime
         run: bash tools/ci-prepare.sh
+      - name: Build LLVM for iOS
+        run: bash tools/ci-llvm.sh
+      - name: Save pinned LLVM build before application compilation
+        if: steps.llvm-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            toolchains/llvm-mingw-20260421-ucrt-macos-universal
+            toolchains/llvm-project
+            toolchains/llvm-host-build
+            toolchains/llvm-ios-build
+          key: ${{ steps.llvm-cache.outputs.cache-primary-key }}
       - name: Build Debug IPA and validate bundled binaries
         run: bash tools/ci-build.sh
       - name: Upload IPA and provenance

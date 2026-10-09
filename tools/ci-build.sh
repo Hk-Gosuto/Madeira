@@ -8,22 +8,6 @@ export CMAKE_BUILD_PARALLEL_LEVEL="${CMAKE_BUILD_PARALLEL_LEVEL:-3}"
 export JOBS="$CMAKE_BUILD_PARALLEL_LEVEL"
 trap 'find build -type f \( -name "*.err" -o -name "err-*.txt" -o -name "*.log" \) -size +0c -exec tail -n 30 {} \;' ERR
 
-# DXMT uses LLVM 15 at the exact commit in the reproducibility record.
-cmake -S toolchains/llvm-project/llvm -B toolchains/llvm-host-build -G Ninja \
-    -DCMAKE_BUILD_TYPE=Release -DLLVM_TARGETS_TO_BUILD= \
-    -DLLVM_ENABLE_PROJECTS= -DLLVM_INCLUDE_TESTS=OFF \
-    -DLLVM_ENABLE_ZLIB=OFF -DLLVM_ENABLE_ZSTD=OFF
-cmake --build toolchains/llvm-host-build --target llvm-tblgen
-cmake -S toolchains/llvm-project/llvm -B toolchains/llvm-ios-build -G Ninja \
-    -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_ARCHITECTURES=arm64 \
-    -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0 \
-    -DCMAKE_BUILD_TYPE=Release -DLLVM_HOST_TRIPLE=arm64-apple-ios17.0 \
-    -DLLVM_DEFAULT_TARGET_TRIPLE=arm64-apple-ios17.0 -DLLVM_TARGET_ARCH=host \
-    -DLLVM_TARGETS_TO_BUILD= -DLLVM_ENABLE_PROJECTS= -DLLVM_BUILD_TOOLS=OFF \
-    -DLLVM_INCLUDE_TESTS=OFF -DLLVM_ENABLE_ZLIB=OFF -DLLVM_ENABLE_ZSTD=OFF \
-    -DLLVM_TABLEGEN="$R/toolchains/llvm-host-build/bin/llvm-tblgen"
-cmake --build toolchains/llvm-ios-build
-
 bash build/gnutls-ios/build.sh
 cp toolchains/gnutls-ios/lib/lib{gmp,nettle,hogweed,gnutls}.a app/Madeira/
 bash build/ffmpeg/build.sh
@@ -36,9 +20,9 @@ mkdir -p wine/build-macos
 if [ ! -f wine/build-macos/config.status ]; then
     (cd wine/build-macos && ../configure --without-x --without-freetype --disable-tests --enable-winegstreamer)
 fi
-make -C wine/build-macos -j"$JOBS" __builddeps__
+make -C wine/build-macos -j"$JOBS" include/all
 bash build/wine-pe/build-ntdll.sh
-make -C wine/build-arm64ec -j"$JOBS" __builddeps__
+make -C wine/build-arm64ec -j"$JOBS" include/all
 bash build/wine-pe/build-modules.sh
 bash build/wine-pe/build-modules.sh dcomp ktmw32
 bash build/ntdll-unix/build.sh
